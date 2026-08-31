@@ -1,0 +1,14 @@
+build/
+*.vcd
+*.fsdb
+*.log
+*.jou
+*.str
+*.wdb
+*.xpr
+.Xil/
+*.cache/
+*.runs/
+*.sim/
+*.hw/
+*.ip_user_files/
