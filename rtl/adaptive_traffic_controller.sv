@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 module adaptive_traffic_controller #(
     parameter int unsigned BASE_GREEN_SECONDS = 33,
     parameter int unsigned YELLOW_SECONDS     = 10,
@@ -43,8 +45,11 @@ module adaptive_traffic_controller #(
 
     always_comb begin
         difference     = $signed({1'b0, demand_a}) - $signed({1'b0, demand_b});
-        candidate_a    = BASE_GREEN_SECONDS + difference;
-        candidate_b    = BASE_GREEN_SECONDS - difference;
+        // BASE_GREEN_SECONDS is intentionally unsigned as a parameter, but
+        // the demand correction may be negative. Cast before the arithmetic
+        // to avoid unsigned underflow when one road has much higher demand.
+        candidate_a    = $signed(BASE_GREEN_SECONDS) + difference;
+        candidate_b    = $signed(BASE_GREEN_SECONDS) - difference;
         green_a_seconds = clamp_green(candidate_a);
         green_b_seconds = clamp_green(candidate_b);
 
