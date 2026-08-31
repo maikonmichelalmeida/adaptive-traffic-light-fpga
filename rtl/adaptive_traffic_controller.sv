@@ -31,6 +31,7 @@ module adaptive_traffic_controller #(
     logic [6:0] green_a_seconds;
     logic [6:0] green_b_seconds;
     integer signed difference;
+    integer signed base_green;
     integer signed candidate_a;
     integer signed candidate_b;
 
@@ -45,11 +46,12 @@ module adaptive_traffic_controller #(
 
     always_comb begin
         difference     = $signed({1'b0, demand_a}) - $signed({1'b0, demand_b});
-        // BASE_GREEN_SECONDS is intentionally unsigned as a parameter, but
-        // the demand correction may be negative. Cast before the arithmetic
-        // to avoid unsigned underflow when one road has much higher demand.
-        candidate_a    = $signed(BASE_GREEN_SECONDS) + difference;
-        candidate_b    = $signed(BASE_GREEN_SECONDS) - difference;
+        // Copy the unsigned configuration parameter into a signed working
+        // value before applying the correction. This avoids unsigned
+        // underflow in simulators when one road has much higher demand.
+        base_green     = BASE_GREEN_SECONDS;
+        candidate_a    = base_green + difference;
+        candidate_b    = base_green - difference;
         green_a_seconds = clamp_green(candidate_a);
         green_b_seconds = clamp_green(candidate_b);
 
