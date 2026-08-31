@@ -30,12 +30,11 @@ module adaptive_traffic_controller #(
     logic [6:0] elapsed;
     logic [6:0] green_a_seconds;
     logic [6:0] green_b_seconds;
-    integer signed difference;
-    integer signed base_green;
-    integer signed candidate_a;
-    integer signed candidate_b;
+    integer unsigned demand_delta;
+    integer unsigned candidate_a;
+    integer unsigned candidate_b;
 
-    function automatic [6:0] clamp_green(input integer signed candidate);
+    function automatic [6:0] clamp_green(input integer unsigned candidate);
         if (candidate < MIN_GREEN_SECONDS)
             clamp_green = MIN_GREEN_SECONDS[6:0];
         else if (candidate > MAX_GREEN_SECONDS)
@@ -45,13 +44,22 @@ module adaptive_traffic_controller #(
     endfunction
 
     always_comb begin
-        difference     = $signed({1'b0, demand_a}) - $signed({1'b0, demand_b});
-        // Copy the unsigned configuration parameter into a signed working
-        // value before applying the correction. This avoids unsigned
-        // underflow in simulators when one road has much higher demand.
-        base_green     = BASE_GREEN_SECONDS;
-        candidate_a    = base_green + difference;
-        candidate_b    = base_green - difference;
+        // Compute the correction without signed/unsigned mixing. The
+        // conditional subtraction prevents underflow when the demand delta
+        // is greater than the configured base time.
+        if (demand_a >= demand_b) begin
+            demand_delta = demand_a - demand_b;
+            candidate_a  = BASE_GREEN_SECONDS + demand_delta;
+            candidate_b  = (BASE_GREEN_SECONDS > demand_delta)
+                         ? BASE_GREEN_SECONDS - demand_delta
+                         : 0;
+        end else begin
+            demand_delta = demand_b - demand_a;
+            candidate_a  = (BASE_GREEN_SECONDS > demand_delta)
+                         ? BASE_GREEN_SECONDS - demand_delta
+                         : 0;
+            candidate_b  = BASE_GREEN_SECONDS + demand_delta;
+        end
         green_a_seconds = clamp_green(candidate_a);
         green_b_seconds = clamp_green(candidate_b);
 
